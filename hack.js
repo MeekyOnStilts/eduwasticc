@@ -1,0 +1,41 @@
+function http_get(url, callback, headers=[], method="GET", content=null) {
+  let request = new XMLHttpRequest();
+  request.addEventListener("load", callback);
+  request.open(method, url, true);
+  for (const header of headers) {
+    request.setRequestHeader(header[0], header[1]);
+  }
+  request.send(content);
+}
+
+function main() {
+  let url_regex = /https://app.edulastic.com/home/class/{{class_section}}/uta/{{uta}}/item/{{item_id}}/testActivityReport/;
+  if (!url_regex.test(window.location)) {
+    alert("Error: Invalid URL.\n\nFor reference, the URL should look like this:\nhttps://app.edulastic.com/home/class/CLASS_ID/test/TEST_ID/testActivityReport/TEST_REPORT_ID");
+    return;
+  }
+  let matches = url_regex.exec(window.location);
+  let group_id = matches[1];
+  let test_id = matches[3];
+  let request_url = `https://app.edulastic.com/api/test-activity/${item_id}/report?groupId=${group_id}`;
+  
+  let token_list = JSON.parse(localStorage.getItem("tokens"));
+  let token = localStorage.getItem(token_list[0]);
+
+  let headers = [
+    ["Authorization", token]
+  ];
+  http_get(request_url, function(){
+    if (this.status != 200) {
+      alert(`Error: Status code ${this.status} recieved while trying to fetch the API.`);
+      return;
+    }
+    let report = JSON.parse(this.responseText);
+    let wrong = report.result.testActivity.wrong;
+    let total = report.result.questionActivities.length;
+    let percent = (100*(total-wrong)/total).toFixed(2);
+    alert(`${total-wrong}/${total} questions correct (~${percent}%)`);
+  }, headers);
+}
+
+main();
